@@ -125,6 +125,26 @@
       "ResetOnInit": true
     },
     {
+      "Name": "FgSchedtunePreferIdle",
+      "Path": "/dev/stune/foreground/schedtune.prefer_idle",
+      "Values": [
+        "1",
+        "0"
+      ],
+      "DefaultIndex": 0,
+      "ResetOnInit": true
+    },
+    {
+      "Name": "BgSchedtunePreferIdle",
+      "Path": "/dev/stune/background/schedtune.prefer_idle",
+      "Values": [
+        "1",
+        "0"
+      ],
+      "DefaultIndex": 0,
+      "ResetOnInit": true
+    },
+    {
       "Name": "TASchedtuneBoost",
       "Path": "/dev/stune/top-app/schedtune.boost",
       "Values": [
@@ -142,6 +162,16 @@
         "1",
         "0"
       ],
+      "ResetOnInit": true
+    },
+    {
+      "Name": "TASchedtunePreferIdle",
+      "Path": "/dev/stune/top-app/schedtune.prefer_idle",
+      "Values": [
+        "1",
+        "0"
+      ],
+      "DefaultIndex": 0,
       "ResetOnInit": true
     },
     {
@@ -432,6 +462,24 @@
     {
       "PowerHint": "DISPLAY_INACTIVE",
       "Node": "TASchedtuneBoost",
+      "Duration": 0,
+      "Value": "0"
+    },
+    {
+      "PowerHint": "DISPLAY_INACTIVE",
+      "Node": "FgSchedtunePreferIdle",
+      "Duration": 0,
+      "Value": "0"
+    },
+    {
+      "PowerHint": "DISPLAY_INACTIVE",
+      "Node": "BgSchedtunePreferIdle",
+      "Duration": 0,
+      "Value": "0"
+    },
+    {
+      "PowerHint": "DISPLAY_INACTIVE",
+      "Node": "TASchedtunePreferIdle",
       "Duration": 0,
       "Value": "0"
     },
