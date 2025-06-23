@@ -1,0 +1,68 @@
+[
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_device_xiaomi_sm6150-common",
+    "target_path": "device/xiaomi/sm6150-common",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_kernel_xiaomi_sm6150",
+    "target_path": "kernel/xiaomi/sm6150",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_device_xiaomi_miuicamera-sweet",
+    "target_path": "device/xiaomi/miuicamera-sweet",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_device_qcom_wfd",
+    "target_path": "device/qcom/wfd",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_hardware_xiaomi",
+    "target_path": "hardware/xiaomi",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_packages_apps_ViPER4AndroidFX",
+    "target_path": "packages/apps/ViPER4AndroidFX",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_hardware_sony_timekeep",
+    "target_path": "hardware/sony/timekeep",
+    "branch": "bka"
+  },
+  {
+    "remote": "codeberg",
+    "repository": "sweet-organization/proprietary_vendor_xiaomi_sweet",
+    "target_path": "vendor/xiaomi/sweet",
+    "branch": "bka"
+  },
+  {
+    "remote": "codeberg",
+    "repository": "sweet-organization/proprietary_vendor_xiaomi_sm6150-common",
+    "target_path": "vendor/xiaomi/sm6150-common",
+    "branch": "bka"
+  },
+  {
+    "remote": "codeberg",
+    "repository": "sweet-organization/proprietary_vendor_xiaomi_miuicamera-sweet",
+    "target_path": "vendor/xiaomi/miuicamera-sweet",
+    "branch": "bka"
+  },
+  {
+    "remote": "codeberg",
+    "repository": "sweet-organization/proprietary_vendor_qcom_wfd",
+    "target_path": "vendor/qcom/wfd",
+    "branch": "bka"
+  }
+]
