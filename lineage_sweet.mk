@@ -15,6 +15,9 @@ $(call inherit-product, device/xiaomi/sweet/device.mk)
 # Inherit some common LineageOS / Evolution-X stuff.
 $(call inherit-product, vendor/lineage/config/common_full_phone.mk)
 
+# MiuiCamera
+TARGET_USES_LEICA_HOLY50 := true
+
 # Bootanimation
 TARGET_INCLUDE_BOOT_ANIMATIONS := true
 TARGET_SCREEN_WIDTH := 1080
