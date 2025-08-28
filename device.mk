@@ -29,9 +29,6 @@ PRODUCT_COPY_FILES += \
 
 # Device-specific settings
 PRODUCT_PACKAGES += \
-    DSPVolumeSynchronizer \
-    XiaomiDolby \
-    XiaomiDolbyResCommon \
     XiaomiParts
 
 # Display
@@ -41,9 +38,6 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_PACKAGES += \
     hwcomposer.sweet
-
-# Dolby
-TARGET_USES_DOLBY := true
 
 # Init scripts
 PRODUCT_COPY_FILES += \
