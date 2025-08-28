@@ -42,6 +42,12 @@
     "branch": "bka"
   },
   {
+    "remote": "github-non-los",
+    "repository": "sweet-organization/android_hardware_dolby",
+    "target_path": "hardware/dolby",
+    "branch": "bka"
+  },
+  {
     "remote": "codeberg",
     "repository": "sweet-organization/proprietary_vendor_xiaomi_sweet",
     "target_path": "vendor/xiaomi/sweet",
