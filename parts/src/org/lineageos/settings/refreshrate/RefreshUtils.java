@@ -20,13 +20,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.UserHandle;
-import android.view.Display;
-
 import android.provider.Settings;
+import android.util.Log;
 import androidx.preference.PreferenceManager;
 
 public final class RefreshUtils {
 
+    private static final String TAG = "RefreshUtils";
     private static final String REFRESH_CONTROL = "refresh_control";
     private static final String REFRESH_SERVICE = "refresh_service";
 
@@ -35,40 +35,34 @@ public final class RefreshUtils {
     private Context mContext;
 
     protected static final int STATE_DEFAULT = 0;
-    protected static final int STATE_LOW = 1;
-    protected static final int STATE_MODERATE = 2;
-    protected static final int STATE_STANDARD = 3;
-    protected static final int STATE_HIGH = 4;
-    protected static final int STATE_EXTREME = 5;
+    protected static final int STATE_STANDARD = 1;
+    protected static final int STATE_HIGH = 2;
+    protected static final int STATE_EXTREME = 3;
 
     private static final float REFRESH_STATE_DEFAULT = 120f;
-    private static final float REFRESH_STATE_LOW = 30f;
-    private static final float REFRESH_STATE_MODERATE = 50f;
     private static final float REFRESH_STATE_STANDARD = 60f;
     private static final float REFRESH_STATE_HIGH = 90f;
     private static final float REFRESH_STATE_EXTREME = 120f;
 
-    private static final String REFRESH_LOW = "refresh.low=";
-    private static final String REFRESH_MODERATE = "refresh.moderate=";
     private static final String REFRESH_STANDARD = "refresh.standard=";
     private static final String REFRESH_HIGH = "refresh.high=";
     private static final String REFRESH_EXTREME = "refresh.extreme=";
-
-    private static boolean isAppInList = false;
-    private static float defaultMaxRate;
-    private static float defaultMinRate;
+    
+    private boolean isAppInList = false;
+    private float defaultMaxRate;
+    private float defaultMinRate;
 
     private SharedPreferences mSharedPrefs;
 
     protected RefreshUtils(Context context) {
         mSharedPrefs = PreferenceManager.getDefaultSharedPreferences(context);
         mContext = context;
+        // Initialize defaults
+        defaultMaxRate = Settings.System.getFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, REFRESH_STATE_DEFAULT);
+        defaultMinRate = Settings.System.getFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, REFRESH_STATE_DEFAULT);
     }
 
     public static void initialize(Context context) {
-        defaultMaxRate = Settings.System.getFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, REFRESH_STATE_DEFAULT);
-        defaultMinRate = Settings.System.getFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, REFRESH_STATE_DEFAULT);
-
         if (isServiceEnabled(context))
             startService(context);
         else
@@ -98,8 +92,7 @@ public final class RefreshUtils {
         String value = mSharedPrefs.getString(REFRESH_CONTROL, null);
 
         if (value == null || value.isEmpty()) {
-            value = REFRESH_LOW + ":" + REFRESH_MODERATE + ":" + REFRESH_STANDARD + ":" +
-                    REFRESH_HIGH + ":" + REFRESH_EXTREME;
+            value = REFRESH_STANDARD + ":" + REFRESH_HIGH + ":" + REFRESH_EXTREME;
             writeValue(value);
         }
         return value;
@@ -107,106 +100,107 @@ public final class RefreshUtils {
 
     protected void writePackage(String packageName, int mode) {
         String value = getValue();
-        value = value.replace(packageName + ",", "");
         String[] modes = value.split(":");
-        String finalString;
+        
+        // Ensure we have 3 modes
+        if (modes.length < 3) {
+            modes = new String[] {REFRESH_STANDARD, REFRESH_HIGH, REFRESH_EXTREME};
+        }
 
+        // Remove package from all modes first
+        for (int i = 0; i < modes.length; i++) {
+            modes[i] = modes[i].replace(packageName + ",", "");
+        }
+
+        // Add package to selected mode (skip DEFAULT)
         switch (mode) {
-            case STATE_LOW:
-                modes[0] = modes[0] + packageName + ",";
-                break;
-            case STATE_MODERATE:
-                modes[1] = modes[1] + packageName + ",";
-                break;
             case STATE_STANDARD:
-                modes[2] = modes[2] + packageName + ",";
+                modes[0] += packageName + ",";
                 break;
             case STATE_HIGH:
-                modes[3] = modes[3] + packageName + ",";
+                modes[1] += packageName + ",";
                 break;
             case STATE_EXTREME:
-                modes[4] = modes[4] + packageName + ",";
+                modes[2] += packageName + ",";
+                break;
+            case STATE_DEFAULT:
+            default:
+                // Don't add to any mode for default
                 break;
         }
 
-        finalString = modes[0] + ":" + modes[1] + ":" + modes[2] + ":" + modes[3] + ":" +
-                modes[4];
-
-        writeValue(finalString);
+        writeValue(modes[0] + ":" + modes[1] + ":" + modes[2]);
     }
 
     protected int getStateForPackage(String packageName) {
         String value = getValue();
         String[] modes = value.split(":");
-        int state = STATE_DEFAULT;
-        if (modes[0].contains(packageName + ",")) {
-            state = STATE_LOW;
-        } else if (modes[1].contains(packageName + ",")) {
-            state = STATE_MODERATE;
-        } else if (modes[2].contains(packageName + ",")) {
-            state = STATE_STANDARD;
-        } else if (modes[3].contains(packageName + ",")) {
-            state = STATE_HIGH;
-        } else if (modes[4].contains(packageName + ",")) {
-            state = STATE_EXTREME;
+        
+        if (modes.length < 3) {
+            return STATE_DEFAULT;
         }
-        return state;
+        
+        if (modes[0].contains(packageName + ",")) {
+            return STATE_STANDARD;
+        } else if (modes[1].contains(packageName + ",")) {
+            return STATE_HIGH;
+        } else if (modes[2].contains(packageName + ",")) {
+            return STATE_EXTREME;
+        }
+        return STATE_DEFAULT;
     }
 
-    protected static void setDefaultRefreshRate(Context context) {
-        Settings.System.putFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, defaultMaxRate);
-        Settings.System.putFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, defaultMinRate);
+    public static void setDefaultRefreshRate(Context context) {
+        try {
+            float defaultMax = Settings.System.getFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, REFRESH_STATE_DEFAULT);
+            float defaultMin = Settings.System.getFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, REFRESH_STATE_DEFAULT);
+            Settings.System.putFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, defaultMax);
+            Settings.System.putFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, defaultMin);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set default refresh rate", e);
+        }
     }
 
     protected void setRefreshRate(String packageName) {
-        String value = getValue();
-        String modes[];
+        if (mContext == null || packageName == null) return;
+        
+        try {
+            String value = getValue();
+            if (value == null) return;
+            
+            String[] modes = value.split(":");
+            if (modes.length < 3) return;
 
-        if (!isAppInList) {
-            defaultMaxRate = Settings.System.getFloat(mContext.getContentResolver(), KEY_PEAK_REFRESH_RATE, REFRESH_STATE_DEFAULT);
-            defaultMinRate = Settings.System.getFloat(mContext.getContentResolver(), KEY_MIN_REFRESH_RATE, REFRESH_STATE_DEFAULT);
-        }
+            if (!isAppInList) {
+                defaultMaxRate = Settings.System.getFloat(mContext.getContentResolver(), KEY_PEAK_REFRESH_RATE, REFRESH_STATE_DEFAULT);
+                defaultMinRate = Settings.System.getFloat(mContext.getContentResolver(), KEY_MIN_REFRESH_RATE, REFRESH_STATE_DEFAULT);
+            }
 
-        float minrate = defaultMinRate;
-        float maxrate = defaultMaxRate;
+            float minrate = defaultMinRate;
+            float maxrate = defaultMaxRate;
 
-        if (value != null) {
-            modes = value.split(":");
             if (modes[0].contains(packageName + ",")) {
-                maxrate = REFRESH_STATE_LOW;
-                if (minrate > maxrate) {
-                    minrate = maxrate;
-                }
+                maxrate = REFRESH_STATE_STANDARD;
                 isAppInList = true;
             } else if (modes[1].contains(packageName + ",")) {
-                maxrate = REFRESH_STATE_MODERATE;
-                if (minrate > maxrate) {
-                    minrate = maxrate;
-                }
+                maxrate = REFRESH_STATE_HIGH;
                 isAppInList = true;
             } else if (modes[2].contains(packageName + ",")) {
-                maxrate = REFRESH_STATE_STANDARD;
-                if (minrate > maxrate) {
-                    minrate = maxrate;
-                }
-                isAppInList = true;
-            } else if (modes[3].contains(packageName + ",")) {
-                maxrate = REFRESH_STATE_HIGH;
-                if (minrate > maxrate) {
-                    minrate = maxrate;
-                }
-                isAppInList = true;
-            } else if (modes[4].contains(packageName + ",")) {
                 maxrate = REFRESH_STATE_EXTREME;
-                if (minrate > maxrate) {
-                    minrate = maxrate;
-                }
                 isAppInList = true;
             } else {
                 isAppInList = false;
             }
+
+            // Adjust min rate if needed
+            if (minrate > maxrate) {
+                minrate = maxrate;
+            }
+
+            Settings.System.putFloat(mContext.getContentResolver(), KEY_PEAK_REFRESH_RATE, maxrate);
+            Settings.System.putFloat(mContext.getContentResolver(), KEY_MIN_REFRESH_RATE, minrate);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set refresh rate for " + packageName, e);
         }
-        Settings.System.putFloat(mContext.getContentResolver(), KEY_PEAK_REFRESH_RATE, maxrate);
-        Settings.System.putFloat(mContext.getContentResolver(), KEY_MIN_REFRESH_RATE, minrate);
     }
 }

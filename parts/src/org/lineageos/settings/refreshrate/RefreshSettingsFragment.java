@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lineageos.settings.refreshrate;
 
 import android.annotation.Nullable;
@@ -95,10 +96,10 @@ public class RefreshSettingsFragment extends PreferenceFragment
         mAppsRecyclerView.setAdapter(mAllPackagesAdapter);
     }
 
-
     @Override
     public void onResume() {
         super.onResume();
+        getActivity().setTitle(getResources().getString(R.string.refresh_title));
         rebuild();
     }
 
@@ -108,6 +109,15 @@ public class RefreshSettingsFragment extends PreferenceFragment
 
         mSession.onPause();
         mSession.onDestroy();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            getActivity().onBackPressed();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -188,10 +198,6 @@ public class RefreshSettingsFragment extends PreferenceFragment
 
     private int getStateDrawable(int state) {
         switch (state) {
-            case RefreshUtils.STATE_LOW:
-                return R.drawable.ic_refresh_30;
-            case RefreshUtils.STATE_MODERATE:
-                return R.drawable.ic_refresh_50;
             case RefreshUtils.STATE_STANDARD:
                 return R.drawable.ic_refresh_60;
             case RefreshUtils.STATE_HIGH:
@@ -228,8 +234,6 @@ public class RefreshSettingsFragment extends PreferenceFragment
         private final LayoutInflater inflater;
         private final int[] items = {
                 R.string.refresh_default,
-                R.string.refresh_low,
-                R.string.refresh_moderate,
                 R.string.refresh_standard,
                 R.string.refresh_high,
                 R.string.refresh_extreme
@@ -294,20 +298,21 @@ public class RefreshSettingsFragment extends PreferenceFragment
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.refresh_list_item, parent, false));
+            ViewHolder holder = new ViewHolder(LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.refresh_list_item, parent, false));
+            Context context = holder.itemView.getContext();
+            holder.mode.setAdapter(new ModeAdapter(context));
+            holder.mode.setOnItemSelectedListener(this);
+            return holder;
         }
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            Context context = holder.itemView.getContext();
             ApplicationsState.AppEntry entry = mEntries.get(position);
             if (entry == null) {
-                return;
+               return;
             }
-
-            holder.mode.setAdapter(new ModeAdapter(context));
-            holder.mode.setOnItemSelectedListener(this);
+    
             holder.title.setText(entry.label);
             holder.title.setOnClickListener(v -> holder.mode.performClick());
             mApplicationsState.ensureIcon(entry);
@@ -330,10 +335,10 @@ public class RefreshSettingsFragment extends PreferenceFragment
             notifyDataSetChanged();
         }
 
-
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
             final ApplicationsState.AppEntry entry = (ApplicationsState.AppEntry) parent.getTag();
+            if (entry == null) return;
             int currentState = mRefreshUtils.getStateForPackage(entry.info.packageName);
             if (currentState != position) {
                 mRefreshUtils.writePackage(entry.info.packageName, position);
@@ -362,14 +367,6 @@ public class RefreshSettingsFragment extends PreferenceFragment
 
             final int index = Arrays.binarySearch(mPositions, position);
 
-            /*
-             * Consider this example: section positions are 0, 3, 5; the supplied
-             * position is 4. The section corresponding to position 4 starts at
-             * position 3, so the expected return value is 1. Binary search will not
-             * find 4 in the array and thus will return -insertPosition-1, i.e. -3.
-             * To get from that number to the expected value of 1 we need to negate
-             * and subtract 2.
-             */
             return index >= 0 ? index : -index - 2;
         }
 
@@ -409,13 +406,9 @@ public class RefreshSettingsFragment extends PreferenceFragment
 
         @Override
         public boolean filterApp(ApplicationsState.AppEntry entry) {
-            boolean show = !mAllPackagesAdapter.mEntries.contains(entry.info.packageName);
-            if (show) {
-                synchronized (mLauncherResolveInfoList) {
-                    show = mLauncherResolveInfoList.contains(entry.info.packageName);
-                }
+            synchronized (mLauncherResolveInfoList) {
+                return mLauncherResolveInfoList.contains(entry.info.packageName);
             }
-            return show;
         }
     }
 }

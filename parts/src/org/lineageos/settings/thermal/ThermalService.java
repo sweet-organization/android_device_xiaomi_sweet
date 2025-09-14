@@ -22,7 +22,6 @@ import android.app.ActivityTaskManager.RootTaskInfo;
 import android.app.IActivityTaskManager;
 import android.app.Service;
 import android.app.TaskStackListener;
-import android.app.TaskStackListener;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -84,6 +83,27 @@ public class ThermalService extends Service {
         return null;
     }
 
+    @Override
+    public void onDestroy() {
+        if (DEBUG) Log.d(TAG, "Destroying service");
+        
+        if (mActivityTaskManager != null) {
+            try {
+                mActivityTaskManager.unregisterTaskStackListener(mTaskListener);
+            } catch (RemoteException e) {
+                // Ignore
+            }
+        }
+        
+        try {
+            unregisterReceiver(mIntentReceiver);
+        } catch (IllegalArgumentException e) {
+            // Receiver was not registered
+        }
+        
+        super.onDestroy();
+    }
+
     private void registerReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -92,6 +112,8 @@ public class ThermalService extends Service {
     }
 
     private void setThermalProfile() {
+        if (mThermalUtils == null) return;
+        
         if (mScreenOn) {
             mThermalUtils.setThermalProfile(mCurrentApp);
         } else {
@@ -103,8 +125,7 @@ public class ThermalService extends Service {
         @Override
         public void onTaskStackChanged() {
             try {
-                final ActivityTaskManager.RootTaskInfo focusedTask =
-                        ActivityTaskManager.getService().getFocusedRootTaskInfo();
+                final RootTaskInfo focusedTask = mActivityTaskManager.getFocusedRootTaskInfo();
                 if (focusedTask != null && focusedTask.topActivity != null) {
                     ComponentName taskComponentName = focusedTask.topActivity;
                     String foregroundApp = taskComponentName.getPackageName();
@@ -113,7 +134,9 @@ public class ThermalService extends Service {
                         setThermalProfile();
                     }
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                Log.e(TAG, "Error in onTaskStackChanged", e);
+            }
         }
     };
 }

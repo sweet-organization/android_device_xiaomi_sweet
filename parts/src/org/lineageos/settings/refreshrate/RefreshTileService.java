@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2021 crDroid Android Project
- * Copyright (C) 2021 Chaldeaprjkt
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +21,15 @@ import android.provider.Settings;
 import android.service.quicksettings.Tile;
 import android.service.quicksettings.TileService;
 import android.view.Display;
+import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 public class RefreshTileService extends TileService {
+    private static final String TAG = "RefreshTileService";
     private static final String KEY_MIN_REFRESH_RATE = "min_refresh_rate";
     private static final String KEY_PEAK_REFRESH_RATE = "peak_refresh_rate";
 
@@ -42,67 +44,158 @@ public class RefreshTileService extends TileService {
     public void onCreate() {
         super.onCreate();
         context = getApplicationContext();
-        Display.Mode mode = context.getDisplay().getMode();
-        Display.Mode[] modes = context.getDisplay().getSupportedModes();
-        for (Display.Mode m : modes) {
-            int rate = (int) Math.round(m.getRefreshRate());
-            if (m.getPhysicalWidth() == mode.getPhysicalWidth() &&
-                m.getPhysicalHeight() == mode.getPhysicalHeight()) {
-                availableRates.add(rate);
-            }
+        if (context != null) {
+            initializeAvailableRates();
+            syncFromSettings();
         }
-        syncFromSettings();
+    }
+
+    private void initializeAvailableRates() {
+        try {
+            Display display = context.getDisplay();
+            if (display == null) {
+                Log.e(TAG, "Display is null");
+                // Fallback to common refresh rates
+                availableRates.add(60);
+                availableRates.add(90);
+                availableRates.add(120);
+                return;
+            }
+
+            Display.Mode mode = display.getMode();
+            Display.Mode[] modes = display.getSupportedModes();
+            
+            for (Display.Mode m : modes) {
+                int rate = (int) Math.round(m.getRefreshRate());
+                if (m.getPhysicalWidth() == mode.getPhysicalWidth() &&
+                    m.getPhysicalHeight() == mode.getPhysicalHeight() &&
+                    !availableRates.contains(rate)) {
+                    availableRates.add(rate);
+                }
+            }
+            
+            // Sort rates in ascending order
+            Collections.sort(availableRates);
+            
+            // Ensure we have at least one rate
+            if (availableRates.isEmpty()) {
+                availableRates.add(60);
+                availableRates.add(120);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing refresh rates", e);
+            // Fallback rates
+            availableRates.clear();
+            availableRates.add(60);
+            availableRates.add(90);
+            availableRates.add(120);
+        }
     }
 
     private int getSettingOf(String key) {
-        float rate = Settings.System.getFloat(context.getContentResolver(), key, 120);
-        int active = availableRates.indexOf((int) Math.round(rate));
-        return Math.max(active, 0);
+        try {
+            float rate = Settings.System.getFloat(context.getContentResolver(), key, 120);
+            int roundedRate = (int) Math.round(rate);
+            int index = availableRates.indexOf(roundedRate);
+            return Math.max(index, 0);
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting setting for " + key, e);
+            return 0;
+        }
     }
 
     private void syncFromSettings() {
         activeRateMin = getSettingOf(KEY_MIN_REFRESH_RATE);
         activeRateMax = getSettingOf(KEY_PEAK_REFRESH_RATE);
+        
+        // Ensure valid indices
+        if (activeRateMin >= availableRates.size()) {
+            activeRateMin = 0;
+        }
+        if (activeRateMax >= availableRates.size()) {
+            activeRateMax = availableRates.size() - 1;
+        }
+        
+        // Ensure min <= max
+        if (activeRateMin > activeRateMax) {
+            activeRateMin = activeRateMax;
+        }
     }
 
     private void cycleRefreshRate() {
-        if (activeRateMax == 0) {
-    	    if(activeRateMin == 0) {
-                activeRateMin = availableRates.size();
-    	    }
-	        activeRateMax = activeRateMin;
-	        float rate = availableRates.get(activeRateMin - 1);
-      	    Settings.System.putFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, rate);
+        try {
+            // Cycle through max refresh rate
+            activeRateMax++;
+            if (activeRateMax >= availableRates.size()) {
+                activeRateMax = 0;
+            }
+            
+            // Set min rate to match max rate for simplicity
+            activeRateMin = activeRateMax;
+            
+            float maxRate = availableRates.get(activeRateMax);
+            float minRate = availableRates.get(activeRateMin);
+            
+            Settings.System.putFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, maxRate);
+            Settings.System.putFloat(context.getContentResolver(), KEY_MIN_REFRESH_RATE, minRate);
+            
+            Log.d(TAG, "Set refresh rate to: " + maxRate + " Hz");
+        } catch (Exception e) {
+            Log.e(TAG, "Error cycling refresh rate", e);
         }
-        float rate = availableRates.get(activeRateMax - 1);
-        Settings.System.putFloat(context.getContentResolver(), KEY_PEAK_REFRESH_RATE, rate);
     }
 
     private void updateTileView() {
-        String displayText;
-        int min = availableRates.get(activeRateMin);
-        int max = availableRates.get(activeRateMax);
+        if (tile == null) return;
+        
+        try {
+            if (availableRates.isEmpty()) {
+                tile.setSubtitle("N/A");
+                tile.setState(Tile.STATE_UNAVAILABLE);
+                tile.updateTile();
+                return;
+            }
+            
+            int min = availableRates.get(activeRateMin);
+            int max = availableRates.get(activeRateMax);
 
-        displayText = String.format(Locale.US, min == max ? "%d Hz" : "%d - %d Hz", min, max);
-        tile.setContentDescription(displayText);
-        tile.setSubtitle(displayText);
-        tile.setState(min == max ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
-        tile.updateTile();
+            String displayText = String.format(Locale.US, "%d Hz", max);
+            
+            tile.setContentDescription(displayText);
+            tile.setSubtitle(displayText);
+            tile.setState(Tile.STATE_ACTIVE);
+            tile.updateTile();
+        } catch (Exception e) {
+            Log.e(TAG, "Error updating tile view", e);
+            tile.setSubtitle("Error");
+            tile.setState(Tile.STATE_UNAVAILABLE);
+            tile.updateTile();
+        }
     }
 
     @Override
     public void onStartListening() {
         super.onStartListening();
         tile = getQsTile();
-        syncFromSettings();
-        updateTileView();
+        if (tile != null) {
+            syncFromSettings();
+            updateTileView();
+        }
+    }
+
+    @Override
+    public void onStopListening() {
+        super.onStopListening();
+        tile = null;
     }
 
     @Override
     public void onClick() {
         super.onClick();
-        cycleRefreshRate();
-        syncFromSettings();
-        updateTileView();
+        if (tile != null && !availableRates.isEmpty()) {
+            cycleRefreshRate();
+            syncFromSettings();
+            updateTileView();
+        }
     }
 }

@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2016 The CyanogenMod Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.lineageos.settings.utils;
 
 import android.util.Log;
@@ -28,6 +12,7 @@ import java.io.IOException;
 
 public final class FileUtils {
     private static final String TAG = "FileUtils";
+    private static final boolean DEBUG = true;
 
     private FileUtils() {
         // This class is not supposed to be instantiated
@@ -35,8 +20,7 @@ public final class FileUtils {
 
     /**
      * Reads the first line of text from the given file.
-     * Reference {@link BufferedReader#readLine()} for clarification on what a
-     * line is
+     * Reference {@link BufferedReader#readLine()} for clarification on what a line is
      *
      * @return the read line contents, or null on failure
      */
@@ -62,6 +46,23 @@ public final class FileUtils {
         }
 
         return line;
+    }
+
+    public static int readLineInt(String fileName) {
+        String line = readOneLine(fileName);
+        if (line == null) {
+            Log.e(TAG, "readLineInt: line is null for file " + fileName);
+            return -1;
+        }
+        try {
+            if (line.startsWith("0x") || line.startsWith("0X")) {
+                return Integer.parseInt(line.substring(2), 16);
+            }
+            return Integer.parseInt(line.trim());
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "Could not convert string to int from file " + fileName + " — value: " + line, e);
+        }
+        return -1; // return an invalid profile to detect error
     }
 
     /**
@@ -92,6 +93,10 @@ public final class FileUtils {
         }
 
         return true;
+    }
+
+    public static boolean writeLine(String fileName, int value) {
+        return writeLine(fileName, Integer.toString(value));
     }
 
     /**
@@ -152,14 +157,9 @@ public final class FileUtils {
         try {
             ok = srcFile.renameTo(dstFile);
         } catch (SecurityException e) {
-            Log.w(TAG,
-                    "SecurityException trying to rename " + srcPath + " to " + dstPath,
-                    e);
+            Log.w(TAG, "SecurityException trying to rename " + srcPath + " to " + dstPath, e);
         } catch (NullPointerException e) {
-            Log.e(TAG,
-                    "NullPointerException trying to rename " + srcPath + " to " +
-                            dstPath,
-                    e);
+            Log.e(TAG, "NullPointerException trying to rename " + srcPath + " to " + dstPath, e);
         }
         return ok;
     }

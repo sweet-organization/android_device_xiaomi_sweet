@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2025 The LineageOS Project
+ * Copyright (C) 2020-2022 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,12 @@ import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 public class ThermalActivity extends CollapsingToolbarBaseActivity {
 
     private static final String TAG_THERMAL = "thermal";
-    private static final String THERMAL_SCONFIG = "/sys/class/thermal/thermal_message/sconfig";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        getFragmentManager().beginTransaction().replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame,
+        getFragmentManager().beginTransaction().replace(
+                com.android.settingslib.collapsingtoolbar.R.id.content_frame,
                 new ThermalSettingsFragment(), TAG_THERMAL).commit();
     }
 

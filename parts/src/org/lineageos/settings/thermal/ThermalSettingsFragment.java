@@ -1,18 +1,19 @@
 /**
  * Copyright (C) 2020 The LineageOS Project
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.lineageos.settings.thermal;
 
 import android.annotation.Nullable;
@@ -198,6 +199,8 @@ public class ThermalSettingsFragment extends PreferenceFragment
                 return R.drawable.ic_thermal_dialer;
             case ThermalUtils.STATE_GAMING:
                 return R.drawable.ic_thermal_gaming;
+            case ThermalUtils.STATE_NAVIGATION:
+                return R.drawable.ic_thermal_navigation;
             case ThermalUtils.STATE_STREAMING:
                 return R.drawable.ic_thermal_streaming;
             case ThermalUtils.STATE_DEFAULT:
@@ -235,6 +238,7 @@ public class ThermalSettingsFragment extends PreferenceFragment
                 R.string.thermal_camera,
                 R.string.thermal_dialer,
                 R.string.thermal_gaming,
+                R.string.thermal_navigation,
                 R.string.thermal_streaming
         };
 
@@ -365,17 +369,8 @@ public class ThermalSettingsFragment extends PreferenceFragment
             if (position < 0 || position >= getItemCount()) {
                 return -1;
             }
-
             final int index = Arrays.binarySearch(mPositions, position);
 
-            /*
-             * Consider this example: section positions are 0, 3, 5; the supplied
-             * position is 4. The section corresponding to position 4 starts at
-             * position 3, so the expected return value is 1. Binary search will not
-             * find 4 in the array and thus will return -insertPosition-1, i.e. -3.
-             * To get from that number to the expected value of 1 we need to negate
-             * and subtract 2.
-             */
             return index >= 0 ? index : -index - 2;
         }
 
@@ -415,7 +410,7 @@ public class ThermalSettingsFragment extends PreferenceFragment
 
         @Override
         public boolean filterApp(ApplicationsState.AppEntry entry) {
-            boolean show = !mAllPackagesAdapter.mEntries.contains(entry.info.packageName);
+            boolean show = mLauncherResolveInfoList.contains(entry.info.packageName);
             if (show) {
                 synchronized (mLauncherResolveInfoList) {
                     show = mLauncherResolveInfoList.contains(entry.info.packageName);

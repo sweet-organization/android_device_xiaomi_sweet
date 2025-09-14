@@ -40,6 +40,7 @@ public class RefreshService extends Service {
     private String mPreviousApp;
     private RefreshUtils mRefreshUtils;
     private IActivityTaskManager mActivityTaskManager;
+    
     private final TaskStackListener mTaskListener = new TaskStackListener() {
         @Override
         public void onTaskStackChanged() {
@@ -50,32 +51,41 @@ public class RefreshService extends Service {
                 }
                 String foregroundApp = info.topActivity.getPackageName();
                 if (!foregroundApp.equals(mPreviousApp)) {
-                    mRefreshUtils.setRefreshRate(foregroundApp);
+                    setRefreshRate(foregroundApp);
                     mPreviousApp = foregroundApp;
                 }
-            } catch (Exception e) {}
+            } catch (Exception e) {
+                Log.e(TAG, "Error in onTaskStackChanged", e);
             }
-        };
+        }
+    };
 
     private BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             mPreviousApp = "";
-            mRefreshUtils.setDefaultRefreshRate(context);
+            if (mRefreshUtils != null) {
+                mRefreshUtils.setDefaultRefreshRate(context);
+            }
         }
     };
 
     @Override
     public void onCreate() {
         if (DEBUG) Log.d(TAG, "Creating service");
+        
         mRefreshUtils = new RefreshUtils(this);
-        mRefreshUtils.setDefaultRefreshRate(this);
+        if (mRefreshUtils != null) {
+            mRefreshUtils.setDefaultRefreshRate(this);
+        }
+        
         try {
             mActivityTaskManager = ActivityTaskManager.getService();
             mActivityTaskManager.registerTaskStackListener(mTaskListener);
         } catch (RemoteException e) {
-            // Do nothing
+            Log.e(TAG, "Failed to register task stack listener", e);
         }
+        
         registerReceiver();
         super.onCreate();
     }
@@ -83,13 +93,25 @@ public class RefreshService extends Service {
     @Override
     public void onDestroy() {
         if (DEBUG) Log.d(TAG, "Destroying service");
-        unregisterReceiver();
+    
         try {
-            ActivityTaskManager.getService().unregisterTaskStackListener(mTaskListener);
-        } catch (RemoteException e) {
-            // Do nothing
+            unregisterReceiver(mIntentReceiver);
+        } catch (IllegalArgumentException e) {
+            // Receiver was not registered
         }
-        mRefreshUtils.setDefaultRefreshRate(this);
+    
+        if (mActivityTaskManager != null) {
+            try {
+                mActivityTaskManager.unregisterTaskStackListener(mTaskListener);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to unregister task stack listener", e);
+            }
+        }
+    
+        if (mRefreshUtils != null) {
+            mRefreshUtils.setDefaultRefreshRate(this);
+        }
+    
         super.onDestroy();
     }
 
@@ -110,8 +132,10 @@ public class RefreshService extends Service {
         filter.addAction(Intent.ACTION_SCREEN_ON);        
         this.registerReceiver(mIntentReceiver, filter);
     }
-
-    private void unregisterReceiver() {
-        this.unregisterReceiver(mIntentReceiver);
+    
+    private void setRefreshRate(String packageName) {
+        if (mRefreshUtils != null && packageName != null) {
+            mRefreshUtils.setRefreshRate(packageName);
+        }
     }
 }
