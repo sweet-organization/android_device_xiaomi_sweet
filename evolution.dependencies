@@ -37,6 +37,12 @@
   },
   {
     "remote": "github-non-los",
+    "repository": "sweet-organization/android_packages_apps_KProfiles",
+    "target_path": "packages/apps/KProfiles",
+    "branch": "bka"
+  },
+  {
+    "remote": "github-non-los",
     "repository": "sweet-organization/android_hardware_sony_timekeep",
     "target_path": "hardware/sony/timekeep",
     "branch": "bka"

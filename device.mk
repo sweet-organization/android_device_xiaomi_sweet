@@ -42,6 +42,10 @@ PRODUCT_PACKAGES += \
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/rootdir/etc/init.sweet.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.sweet.rc
 
+# KProfiles
+PRODUCT_PACKAGES += \
+    KProfiles
+
 # NFC
 PRODUCT_PACKAGES += \
     com.android.nfc_extras \
