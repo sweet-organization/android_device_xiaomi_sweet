@@ -1,0 +1,5 @@
+runtime_resource_overlay {
+    name: "SweetSystemUIOverlay",
+    theme: "SweetSystemUIOverlay",
+    product_specific: true,
+}

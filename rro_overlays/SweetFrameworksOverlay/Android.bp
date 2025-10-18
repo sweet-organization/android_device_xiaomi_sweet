@@ -1,0 +1,5 @@
+runtime_resource_overlay {
+    name: "SweetFrameworksOverlay",
+    theme: "SweetFrameworksOverlay",
+    product_specific: true,
+}

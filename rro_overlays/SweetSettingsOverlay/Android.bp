@@ -1,0 +1,5 @@
+runtime_resource_overlay {
+    name: "SweetSettingsOverlay",
+    theme: "SweetSettingsOverlay",
+    product_specific: true,
+}
