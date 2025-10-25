@@ -484,6 +484,12 @@
       "Value": "0"
     },
     {
+      "PowerHint": "DISPLAY_INACTIVE",
+      "Node": "TASchedtuneHighCap",
+      "Duration": 0,
+      "Value": "0"
+    },
+    {
       "PowerHint": "DOUBLE_TAP_TO_WAKE",
       "Node": "DoubleTapToWakeEnable",
       "Duration": 0,
